@@ -15,14 +15,25 @@ type CaboData = {
 
 export default function CaboPage() {
   const [players, setPlayers] = useState<CaboPlayer[]>([]);
-  let localStorage: Storage | undefined;
-  let caboLocalStorageItem;
-  let caboData: CaboData;
+  const [caboLocalStorageItem, setCaboLocalStorageItem] = useState<
+    string | null
+  >(null);
+  let localStorage: Storage | undefined = undefined;
+  let caboData: CaboData = { players: [] };
+
+  useEffect(() => {
+    // Access localStorage in useEffect which only runs on the client
+    const caboStorageItem = localStorage?.getItem("cabo");
+    if (caboStorageItem) {
+      const caboData = JSON.parse(caboStorageItem);
+      setPlayers(caboData.players || []);
+      setCaboLocalStorageItem(caboStorageItem);
+    }
+  }, []);
 
   if (typeof window !== "undefined") {
     localStorage = window.localStorage;
-    caboLocalStorageItem = localStorage.getItem("cabo");
-    // Rest of your client-side code...
+    setCaboLocalStorageItem(localStorage.getItem("cabo"));
   }
 
   if (caboLocalStorageItem) {
