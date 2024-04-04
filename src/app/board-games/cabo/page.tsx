@@ -15,81 +15,81 @@ type CaboData = {
 
 export default function CaboPage() {
   const [players, setPlayers] = useState<CaboPlayer[]>([]);
-  const [caboLocalStorageItem, setCaboLocalStorageItem] = useState<
-    string | null
-  >(null);
-  let localStorage: Storage | undefined = undefined;
-  let caboData: CaboData = { players: [] };
 
   useEffect(() => {
-    // Access localStorage in useEffect which only runs on the client
-    const caboStorageItem = localStorage?.getItem("cabo");
-    if (caboStorageItem) {
-      const caboData = JSON.parse(caboStorageItem);
-      setPlayers(caboData.players || []);
-      setCaboLocalStorageItem(caboStorageItem);
+    // create the cabo object in local storage if it doesn't exist
+    if (!localStorage?.getItem("cabo")) {
+      localStorage?.setItem("cabo", JSON.stringify({ players: [] }));
     }
+
+    // get the cabo object from local storage
+    const caboData = JSON.parse(
+      localStorage?.getItem("cabo") as string
+    ) as CaboData;
+
+    // set the players in state
+    setPlayers(caboData.players);
   }, []);
 
-  if (typeof window !== "undefined") {
-    localStorage = window.localStorage;
-    setCaboLocalStorageItem(localStorage.getItem("cabo"));
-  }
-
-  if (caboLocalStorageItem) {
-    caboData = JSON.parse(caboLocalStorageItem);
-  } else {
-    const initialCaboData = { players: [] };
-    localStorage?.setItem("cabo", JSON.stringify(initialCaboData));
-    caboData = initialCaboData;
-  }
-
-  console.log(caboData.players);
-
-  const handleAddPlayerSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const addPlayer = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement; // Cast 'form' to HTMLFormElement
+    const form = e.currentTarget as HTMLFormElement;
     const formData = new FormData(form);
-    const playerName = formData.get("playerName");
-    // Add player to the list of players
-    const newPlayer = { name: playerName, score: 0 };
-    caboData.players.push(newPlayer as CaboPlayer);
+    const playerName = formData.get("playerName") as string;
+
+    // get the cabo object from local storage
+    const caboData = JSON.parse(
+      localStorage?.getItem("cabo") as string
+    ) as CaboData;
+
+    // add the player to the players array
+    caboData.players.push({ name: playerName, score: 0 });
+
+    // update the players in local storage
     localStorage?.setItem("cabo", JSON.stringify(caboData));
+
+    // update the players in state
+    setPlayers(caboData.players);
+
+    // clear the form
     form.reset();
+  };
+
+  const resetGame = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // get the cabo object from local storage
+    const caboData = JSON.parse(
+      localStorage?.getItem("cabo") as string
+    ) as CaboData;
+
+    // reset the list of players
+    caboData.players = [];
+
+    // update the players in local storage
+    localStorage?.setItem("cabo", JSON.stringify(caboData));
+
+    // update the players in state
     setPlayers(caboData.players);
   };
 
-  useEffect(() => {
-    setPlayers(caboData.players);
-  }, []);
-
-  function handleRestartGame(e: React.FormEvent<HTMLFormElement>): void {
+  const resetScores = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const initialCaboData = { players: [] };
-    localStorage?.setItem("cabo", JSON.stringify(initialCaboData));
-    setPlayers(initialCaboData.players);
-  }
+    // get the cabo object from local storage
+    const caboData = JSON.parse(
+      localStorage?.getItem("cabo") as string
+    ) as CaboData;
 
-  function handleRestartScores(e: React.FormEvent<HTMLFormElement>): void {
-    e.preventDefault();
+    // reset the scores of all the players
     caboData.players.forEach((player) => {
       player.score = 0;
     });
+
+    // update the players in local storage
     localStorage?.setItem("cabo", JSON.stringify(caboData));
+
+    // update the players in state
     setPlayers(caboData.players);
-  }
-
-  function handlePlayerMinus(
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ): void {
-    throw new Error("Function not implemented.");
-  }
-
-  function handlePlayerKamikaze(
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ): void {
-    throw new Error("Function not implemented.");
-  }
+  };
 
   return (
     <div className="p-5">
@@ -101,8 +101,8 @@ export default function CaboPage() {
       <div className="flex justify-around items-center">
         <form
           action=""
-          onSubmit={handleAddPlayerSubmit}
           className="flex justify-evenly w-1/3 m-3 items-center"
+          onSubmit={addPlayer}
         >
           <input
             type="text"
@@ -113,10 +113,10 @@ export default function CaboPage() {
           <Button buttonText="Add Player" classes="w-1/2" type={"submit"} />
         </form>
         <div className="flex items-center">
-          <form action="" onSubmit={handleRestartGame}>
+          <form action="" onSubmit={resetGame}>
             <Button buttonText="Restart Game" type={"submit"} />
           </form>
-          <form action="" onSubmit={handleRestartScores}>
+          <form action="" onSubmit={resetScores}>
             <Button buttonText="Restart Scores" type={"submit"} />
           </form>
         </div>
@@ -138,8 +138,10 @@ export default function CaboPage() {
                 <td className="flex justify-around">
                   <button
                     onClick={() => {
-                      console.log("clicking +1");
                       player.score += 1;
+                      const caboData = JSON.parse(
+                        localStorage?.getItem("cabo") as string
+                      ) as CaboData;
                       caboData.players[index] = player;
                       localStorage?.setItem("cabo", JSON.stringify(caboData));
                       setPlayers(caboData.players);
@@ -150,6 +152,9 @@ export default function CaboPage() {
                   <button
                     onClick={() => {
                       player.score -= 1;
+                      const caboData = JSON.parse(
+                        localStorage?.getItem("cabo") as string
+                      ) as CaboData;
                       caboData.players[index] = player;
                       localStorage?.setItem("cabo", JSON.stringify(caboData));
                       setPlayers(caboData.players);
@@ -160,6 +165,9 @@ export default function CaboPage() {
                   <button
                     onClick={() => {
                       // kamikaze adds +50 to all the other players but not to the player who clicked the button
+                      const caboData = JSON.parse(
+                        localStorage?.getItem("cabo") as string
+                      ) as CaboData;
                       caboData.players.forEach((p, i) => {
                         if (i !== index) {
                           p.score += 50;
